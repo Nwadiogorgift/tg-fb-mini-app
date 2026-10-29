@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>Private Telegram Web App</title>
+
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 24px;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #f0f2f5;
+            font-family: Arial, sans-serif;
+            color: #1c1e21;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 380px;
+            padding: 28px 22px;
+            background: #fff;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-top: 0;
+        }
+
+        p {
+            line-height: 1.6;
+            overflow-wrap: anywhere;
+        }
+
+        .muted {
+            color: #65676b;
+            font-size: 14px;
+        }
+
+        .error {
+            color: #b42318;
+        }
+
+        .success {
+            color: #1877f2;
+        }
+
+        button {
+            display: block;
+            width: 100%;
+            margin-top: 20px;
+            padding: 14px;
+            border: 0;
+            border-radius: 8px;
+            background: #1877f2;
+            color: #fff;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        button:focus-visible {
+            outline: 3px solid #174ea6;
+            outline-offset: 3px;
+        }
+
+        [hidden] {
+            display: none !important;
+        }
+    </style>
+</head>
+
+<body>
+    <main class="container">
+
+        <section id="loading">
+            <h1>Loading...</h1>
+            <p>Please wait.</p>
+        </section>
+
+        <section id="access-denied" hidden>
+            <h1 class="error">Access Denied</h1>
+
+            <p>
+                This is a private application.
+                You are not currently authorized to access it.
+            </p>
+
+            <p class="muted">
+                Telegram user ID:
+                <strong id="user-id">Unavailable</strong>
+            </p>
+        </section>
+
+        <section id="access-granted" hidden>
+            <h1 class="success">Access Granted</h1>
+
+            <p>
+                You are authorized to use this application.
+            </p>
+
+            <button id="facebook-button" type="button">
+                Continue to Facebook
+            </button>
+        </section>
+
+        <section id="telegram-required" hidden>
+            <h1>Telegram Required</h1>
+
+            <p>
+                Please open this application through Telegram.
+            </p>
+        </section>
+
+    </main>
+
+    <script>
+        "use strict";
+
+        // Add authorized Telegram user IDs here.
+        const ALLOWED_USERS = [
+            8563876793,
+            123456789,
+            7615626442
+        ];
+
+        const tg = window.Telegram?.WebApp;
+
+        const screens = {
+            loading: document.getElementById("loading"),
+            denied: document.getElementById("access-denied"),
+            granted: document.getElementById("access-granted"),
+            telegram: document.getElementById("telegram-required")
+        };
+
+        function showScreen(selectedScreen) {
+            Object.values(screens).forEach(screen => {
+                screen.hidden = screen !== selectedScreen;
+            });
+        }
+
+        function initializeApp() {
+            if (!tg) {
+                showScreen(screens.telegram);
+                return;
+            }
+
+            tg.ready();
+
+            const user = tg.initDataUnsafe?.user;
+
+            if (!user || user.id == null) {
+                showScreen(screens.telegram);
+                return;
+            }
+
+            const userId = Number(user.id);
+
+            document.getElementById("user-id").textContent =
+                String(userId);
+
+            if (ALLOWED_USERS.includes(userId)) {
+                showScreen(screens.granted);
+            } else {
+                showScreen(screens.denied);
+            }
+        }
+
+        document
+            .getElementById("facebook-button")
+            .addEventListener("click", function () {
+                const userId = tg?.initDataUnsafe?.user?.id;
+
+                if (
+                    userId != null &&
+                    ALLOWED_USERS.includes(Number(userId))
+                ) {
+                    // Navigate within the current webview.
+                    window.location.href ="https://www.facebook.com/";
+                } else {
+                    showScreen(screens.denied);
+                }
+            });
+
+        initializeApp();
+    </script>
+</body>
+</html>
