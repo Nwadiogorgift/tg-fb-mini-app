@@ -1,199 +1,88 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-
-    <title>Private Telegram Web App</title>
-
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-
-    <style>
-        * {
-            box-sizing: border-box;
-        }
-
-        body {
-            margin: 0;
-            padding: 24px;
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background: #f0f2f5;
-            font-family: Arial, sans-serif;
-            color: #1c1e21;
-        }
-
-        .container {
-            width: 100%;
-            max-width: 380px;
-            padding: 28px 22px;
-            background: #fff;
-            border-radius: 12px;
-            text-align: center;
-        }
-
-        h1 {
-            font-size: 24px;
-            margin-top: 0;
-        }
-
-        p {
-            line-height: 1.6;
-            overflow-wrap: anywhere;
-        }
-
-        .muted {
-            color: #65676b;
-            font-size: 14px;
-        }
-
-        .error {
-            color: #b42318;
-        }
-
-        .success {
-            color: #1877f2;
-        }
-
-        button {
-            display: block;
-            width: 100%;
-            margin-top: 20px;
-            padding: 14px;
-            border: 0;
-            border-radius: 8px;
-            background: #1877f2;
-            color: #fff;
-            font-size: 16px;
-            cursor: pointer;
-        }
-
-        button:focus-visible {
-            outline: 3px solid #174ea6;
-            outline-offset: 3px;
-        }
-
-        [hidden] {
-            display: none !important;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Loading...</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: system-ui, sans-serif;
+      background: #f0f2f5;
+      text-align: center;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+    .box { max-width: 360px; }
+    h1 { color: #d93025; margin: 0 0 10px; }
+    p { color: #444; line-height: 1.5; }
+    .id { margin-top: 20px; color: #777; font-size: 14px; }
+    #open-fb {
+      display: none;
+      margin-top: 16px;
+      padding: 12px 24px;
+      font-size: 16px;
+      border: 0;
+      border-radius: 8px;
+      background: #1877f2;
+      color: #fff;
+    }
+  </style>
 </head>
-
 <body>
-    <main class="container">
 
-        <section id="loading">
-            <h1>Loading...</h1>
-            <p>Please wait.</p>
-        </section>
+  <!-- Loading state -->
+  <div class="box" id="loading"><p>Loading...</p></div>
 
-        <section id="access-denied" hidden>
-            <h1 class="error">Access Denied</h1>
+  <!-- What strangers see -->
+  <div class="box" id="access-denied" style="display:none;">
+    <h1>Access Denied</h1>
+    <p>This is a private bot. You do not have permission to use it.</p>
+    <p class="id">Your ID is: <span id="stranger-id"></span></p>
+    <p class="id">Send this ID to the owner to request access.</p>
+  </div>
 
-            <p>
-                This is a private application.
-                You are not currently authorized to access it.
-            </p>
+  <!-- What you (allowed users) see if auto-redirect is blocked -->
+  <div class="box" id="allowed" style="display:none;">
+    <p>Access granted. Opening Facebook...</p>
+    <button id="open-fb">Open Facebook</button>
+  </div>
 
-            <p class="muted">
-                Telegram user ID:
-                <strong id="user-id">Unavailable</strong>
-            </p>
-        </section>
+<script>
+  // PUT THE TELEGRAM IDs OF ALLOWED PEOPLE HERE (numbers, separated by commas)
+  const ALLOWED_USERS = [8563876793, 849850000, 7615626442];
 
-        <section id="access-granted" hidden>
-            <h1 class="success">Access Granted</h1>
+  const FACEBOOK_URL = "https://www.facebook.com";
 
-            <p>
-                You are authorized to use this application.
-            </p>
+  const tg = window.Telegram.WebApp;
+  tg.ready();
+  tg.expand();
 
-            <button id="facebook-button" type="button">
-                Continue to Facebook
-            </button>
-        </section>
+  const userId = tg.initDataUnsafe?.user?.id;
 
-        <section id="telegram-required" hidden>
-            <h1>Telegram Required</h1>
+  const show = (id) => {
+    document.getElementById("loading").style.display = "none";
+    document.getElementById(id).style.display = "block";
+  };
 
-            <p>
-                Please open this application through Telegram.
-            </p>
-        </section>
+  if (userId && ALLOWED_USERS.includes(userId)) {
+    show("allowed");
+    const btn = document.getElementById("open-fb");
+    btn.style.display = "inline-block";
+    btn.onclick = () => tg.openLink(FACEBOOK_URL);
 
-    </main>
+    // Try to go to Facebook automatically
+    window.location.href = FACEBOOK_URL;
+  } else {
+    document.getElementById("stranger-id").textContent = userId || "Unknown (open this inside Telegram)";
+    show("access-denied");
+  }
+</script>
 
-    <script>
-        "use strict";
-
-        // Add authorized Telegram user IDs here.
-        const ALLOWED_USERS = [
-            8563876793,
-            123456789,
-            7615626442
-        ];
-
-        const tg = window.Telegram?.WebApp;
-
-        const screens = {
-            loading: document.getElementById("loading"),
-            denied: document.getElementById("access-denied"),
-            granted: document.getElementById("access-granted"),
-            telegram: document.getElementById("telegram-required")
-        };
-
-        function showScreen(selectedScreen) {
-            Object.values(screens).forEach(screen => {
-                screen.hidden = screen !== selectedScreen;
-            });
-        }
-
-        function initializeApp() {
-            if (!tg) {
-                showScreen(screens.telegram);
-                return;
-            }
-
-            tg.ready();
-
-            const user = tg.initDataUnsafe?.user;
-
-            if (!user || user.id == null) {
-                showScreen(screens.telegram);
-                return;
-            }
-
-            const userId = Number(user.id);
-
-            document.getElementById("user-id").textContent =
-                String(userId);
-
-            if (ALLOWED_USERS.includes(userId)) {
-                showScreen(screens.granted);
-            } else {
-                showScreen(screens.denied);
-            }
-        }
-
-        document
-            .getElementById("facebook-button")
-            .addEventListener("click", function () {
-                const userId = tg?.initDataUnsafe?.user?.id;
-
-                if (
-                    userId != null &&
-                    ALLOWED_USERS.includes(Number(userId))
-                ) {
-                    // Navigate within the current webview.
-                    window.location.href ="https://www.facebook.com/";
-                } else {
-                    showScreen(screens.denied);
-                }
-            });
-
-        initializeApp();
-    </script>
 </body>
 </html>
